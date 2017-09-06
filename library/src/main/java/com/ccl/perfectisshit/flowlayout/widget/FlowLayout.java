@@ -9,9 +9,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Scroller;
-import android.widget.TextView;
 
-import com.ccl.perfectisshit.flowlayout.R;
 import com.ccl.perfectisshit.flowlayout.listener.OnFlowLayoutClickListener;
 import com.ccl.perfectisshit.flowlayout.util.DensityUtils;
 
@@ -23,8 +21,7 @@ import java.util.List;
  */
 
 public class FlowLayout extends ViewGroup {
-    private List<String> textData;
-    private SparseArrayCompat<TextView> textViewArray = new SparseArrayCompat<>();
+    private SparseArrayCompat<View> viewArray = new SparseArrayCompat<>();
     private SparseArrayCompat<Rect> childViewRectArray = new SparseArrayCompat<>();
     private List<Integer> lineWidthArray = new ArrayList<>();
     private List<Integer> lineHeightArray = new ArrayList<>();
@@ -38,6 +35,7 @@ public class FlowLayout extends ViewGroup {
     private OnFlowLayoutClickListener mClickListener;
     private float mY;
     private Rect mLocalVisibleRect;
+    private BaseAdapter<?> mAdapter;
 
     public FlowLayout(Context context) {
         this(context, null);
@@ -83,16 +81,16 @@ public class FlowLayout extends ViewGroup {
     private void calculateChildViewSize() {
         int lineWidth = mPaddingLeft;
         int lineHeight = mPaddingTop;
-        if (textData != null && textData.size() != 0) {
-            for (int j = 0; j < textData.size(); j++) {
-                TextView textView = textViewArray.get(j);
-                int measuredWidth = textView.getMeasuredWidth();
-                int measuredHeight = textView.getMeasuredHeight();
-                if (mMeasureWidth - lineWidth - mPaddingRight < textView.getMeasuredWidth()) {
+        if (viewArray != null && viewArray.size() != 0) {
+            for (int j = 0; j < viewArray.size(); j++) {
+                View view = viewArray.get(j);
+                int measuredWidth = view.getMeasuredWidth();
+                int measuredHeight = view.getMeasuredHeight();
+                if (mMeasureWidth - lineWidth - mPaddingRight < view.getMeasuredWidth()) {
                     lineWidth += mPaddingRight;
                     lineWidthArray.add(lineWidth);
                     lineWidth = mPaddingLeft;
-                    lineHeight += textView.getMeasuredHeight() + DensityUtils.dp2px(getContext(), 10);
+                    lineHeight += view.getMeasuredHeight() + DensityUtils.dp2px(getContext(), 10);
                     lineHeightArray.add(lineHeight);
                 }
                 Rect rect = new Rect(lineWidth, lineHeight, lineWidth + measuredWidth, lineHeight + measuredHeight);
@@ -102,8 +100,8 @@ public class FlowLayout extends ViewGroup {
                     lineWidth += DensityUtils.dp2px(getContext(), 10);
                 }
             }
-            int measuredWidth = textViewArray.get(textViewArray.size() - 1).getMeasuredWidth();
-            int measuredHeight = textViewArray.get(textViewArray.size() - 1).getMeasuredHeight();
+            int measuredWidth = viewArray.get(viewArray.size() - 1).getMeasuredWidth();
+            int measuredHeight = viewArray.get(viewArray.size() - 1).getMeasuredHeight();
             lineWidth = lineWidth + measuredWidth + mPaddingRight;
             lineHeight = lineHeight + measuredHeight + mPaddingBottom;
             lineWidthArray.add(lineWidth);
@@ -116,7 +114,7 @@ public class FlowLayout extends ViewGroup {
         if (childViewRectArray != null && childViewRectArray.size() > 0) {
             for (int j = 0; j < childViewRectArray.size(); j++) {
                 Rect rect = childViewRectArray.get(j);
-                textViewArray.get(j).layout(rect.left, rect.top, rect.right, rect.bottom);
+                viewArray.get(j).layout(rect.left, rect.top, rect.right, rect.bottom);
             }
         }
     }
@@ -135,14 +133,17 @@ public class FlowLayout extends ViewGroup {
     }
 
     private View isClickOnChild(int x, int y) {
-        if (textViewArray != null && textViewArray.size() > 0) {
-            for (int i = 0; i < textViewArray.size(); i++) {
-                TextView textView = textViewArray.get(i);
+        if (viewArray != null && viewArray.size() > 0) {
+            for (int i = 0; i < viewArray.size(); i++) {
+                View view = viewArray.get(i);
                 Rect rect = childViewRectArray.get(i);
-                rect.top = rect.top - getScrollY();
-                rect.bottom = rect.bottom - getScrollY();
-                if (rect.contains(x, y)) {
-                    return textView;
+                Rect visibleRect = new Rect();
+                visibleRect.left = rect.left;
+                visibleRect.right = rect.right;
+                visibleRect.top = rect.top - getScrollY();
+                visibleRect.bottom = rect.bottom - getScrollY();
+                if (visibleRect.contains(x, y)) {
+                    return view;
                 }
             }
         }
@@ -183,20 +184,21 @@ public class FlowLayout extends ViewGroup {
         super.computeScroll();
     }
 
-    public void setDataList(List<String> textData) {
-        this.textData = textData;
-        notifyDataSetChanged();
-    }
-
     public void notifyDataSetChanged() {
+        if(mAdapter == null){
+            return;
+        }
         clearData();
-        generateTextView();
+        inflateView();
     }
 
     private void clearData() {
         removeAllViews();
-        if (textViewArray != null) {
-            textViewArray.clear();
+        if (viewArray != null) {
+            viewArray.clear();
+        }
+        if(childViewRectArray != null){
+            childViewRectArray.clear();
         }
         if (lineHeightArray != null) {
             lineHeightArray.clear();
@@ -210,23 +212,49 @@ public class FlowLayout extends ViewGroup {
         mClickListener = listener;
     }
 
-    private void generateTextView() {
-        if (textData == null || textData.size() == 0) {
+    public void setAdapter(BaseAdapter<?> adapter){
+        clearData();
+        if(adapter == null){
             return;
         }
-        for (int i = 0; i < textData.size(); i++) {
-            TextView textView = new TextView(getContext());
-            textView.setPadding(DensityUtils.dp2px(getContext(), 5), DensityUtils.dp2px(getContext(), 5), DensityUtils.dp2px(getContext(), 5), DensityUtils.dp2px(getContext(), 5));
-            textView.setId(i);
-            textView.setBackground(getContext().getResources().getDrawable(R.drawable.selector_flow_layout_tv_bg));
-            textView.setTextColor(getContext().getResources().getColor(android.R.color.holo_blue_bright));
-            textView.setTextSize(13);
-            textView.setText(textData.get(i));
+        mAdapter = adapter;
+        inflateView();
+    }
+
+    private void inflateView() {
+        int count = mAdapter.getCount();
+        if(count == 0){
+            return;
+        }
+        for (int i = 0; i < count; i++) {
+            View view = mAdapter.getView(i, this);
+            if(view == null){
+                throw new NullPointerException("View is null object");
+            }
             MarginLayoutParams textMarginLayoutParams = new MarginLayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-            addView(textView, textMarginLayoutParams);
-            textViewArray.put(i, textView);
+            addView(view, textMarginLayoutParams);
+            viewArray.put(i, view);
         }
         requestLayout();
+    }
+
+    private interface AdapterInterface<T extends Object>{
+        T getItem(int position);
+
+        int getCount();
+
+        View getView(int position, ViewGroup parent);
+    }
+
+    public static abstract class BaseAdapter<T extends Object> implements AdapterInterface{
+        @Override
+        public abstract T getItem(int position);
+
+        @Override
+        public abstract int getCount();
+
+        @Override
+        public abstract View getView(int position, ViewGroup parent) ;
     }
 
     private int getScreenSize(int type) {
