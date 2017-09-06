@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:padding="10dp"
         android:text="notify"
-        android:background="#06E83B"
+        android:background="#00A2E8"
         android:gravity="center"
         android:textColor="@android:color/white"/>
 
