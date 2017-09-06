@@ -185,7 +185,7 @@ public class FlowLayout extends ViewGroup {
     }
 
     public void notifyDataSetChanged() {
-        if(mAdapter == null){
+        if (mAdapter == null) {
             return;
         }
         clearData();
@@ -197,7 +197,7 @@ public class FlowLayout extends ViewGroup {
         if (viewArray != null) {
             viewArray.clear();
         }
-        if(childViewRectArray != null){
+        if (childViewRectArray != null) {
             childViewRectArray.clear();
         }
         if (lineHeightArray != null) {
@@ -212,9 +212,9 @@ public class FlowLayout extends ViewGroup {
         mClickListener = listener;
     }
 
-    public void setAdapter(BaseAdapter<?> adapter){
+    public void setAdapter(BaseAdapter<?> adapter) {
         clearData();
-        if(adapter == null){
+        if (adapter == null) {
             return;
         }
         mAdapter = adapter;
@@ -223,12 +223,12 @@ public class FlowLayout extends ViewGroup {
 
     private void inflateView() {
         int count = mAdapter.getCount();
-        if(count == 0){
+        if (count == 0) {
             return;
         }
         for (int i = 0; i < count; i++) {
             View view = mAdapter.getView(i, this);
-            if(view == null){
+            if (view == null) {
                 throw new NullPointerException("View is null object");
             }
             MarginLayoutParams textMarginLayoutParams = new MarginLayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
@@ -238,7 +238,7 @@ public class FlowLayout extends ViewGroup {
         requestLayout();
     }
 
-    private interface AdapterInterface<T extends Object>{
+    private interface AdapterInterface<T extends Object> {
         T getItem(int position);
 
         int getCount();
@@ -246,15 +246,8 @@ public class FlowLayout extends ViewGroup {
         View getView(int position, ViewGroup parent);
     }
 
-    public static abstract class BaseAdapter<T extends Object> implements AdapterInterface{
-        @Override
-        public abstract T getItem(int position);
+    public static abstract class BaseAdapter<T extends Object> implements AdapterInterface<T> {
 
-        @Override
-        public abstract int getCount();
-
-        @Override
-        public abstract View getView(int position, ViewGroup parent) ;
     }
 
     private int getScreenSize(int type) {
