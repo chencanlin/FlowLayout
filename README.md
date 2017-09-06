@@ -2,9 +2,10 @@
 
 相关功能：
 
-	1、支持多个按钮同时选中；
-    2、按钮点击回调；
-    3、支持数据更改刷新view；
+	1、适配器模式填充数据；
+	2、支持多个按钮同时选中；
+    3、按钮点击回调；
+    4、支持数据更改刷新view；
 
 效果：
 
@@ -25,7 +26,33 @@ xml声明：
 代码调用：
 
 		mFL = findViewById(R.id.fl);
-		mFL.setDataList(data);
+		mFL.setAdapter(new MyAdapter());
+
+		private class MyAdapter extends FlowLayout.BaseAdapter<String>{
+        @Override
+        public String getItem(int position) {
+            return data.get(position);
+        }
+
+        @Override
+        public int getCount() {
+            return data == null ? 0 : data.size();
+        }
+
+        @Override
+        public View getView(int position, ViewGroup parent) {
+            TextView textView = new TextView(parent.getContext());
+            textView.setPadding(DensityUtils.dp2px(MainActivity.this, 5), DensityUtils.dp2px(MainActivity.this, 5), DensityUtils.dp2px(MainActivity.this, 5), DensityUtils.dp2px(MainActivity.this, 5));
+            textView.setBackground(getResources().getDrawable(R.drawable.selector_flow_layout_tv_bg));
+            textView.setTextColor(getResources().getColor(android.R.color.holo_blue_bright));
+            textView.setTextSize(13);
+            textView.setText(data.get(position));
+            return textView;
+        }
+    }
+
+
+		// 可以获取点击监听，也可以自己在adapter里面实现点击监听
 		mFL.setOnClickListener(new OnFlowLayoutClickListener() {
             @Override
             public void onClick(View v) {
