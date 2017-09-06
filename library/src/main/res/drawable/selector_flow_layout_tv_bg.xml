@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">s
+    <item android:state_selected="true" android:drawable="@drawable/shape_flow_layout_tv_selected"/>
+    <item android:drawable="@drawable/shape_flow_layout_textview_bg" android:state_selected="false"/>
+    <item android:drawable="@drawable/shape_flow_layout_textview_bg"/>
+</selector>
