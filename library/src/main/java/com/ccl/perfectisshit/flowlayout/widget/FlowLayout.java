@@ -6,7 +6,9 @@ import android.support.v4.util.SparseArrayCompat;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.Scroller;
 
@@ -37,6 +39,11 @@ public class FlowLayout extends ViewGroup {
     private Rect mLocalVisibleRect;
     private BaseAdapter<?> mAdapter;
 
+    private VelocityTracker velocityTracker;
+    private int minimumVelocity;
+    private int maximumVelocity;
+    private int mMeasureHeight;
+
     public FlowLayout(Context context) {
         this(context, null);
     }
@@ -52,12 +59,17 @@ public class FlowLayout extends ViewGroup {
 
     private void init() {
         mScroller = new Scroller(getContext());
+
+        final ViewConfiguration configuration = ViewConfiguration.get(getContext());
+        this.minimumVelocity = configuration.getScaledMinimumFlingVelocity();
+        this.maximumVelocity = configuration.getScaledMaximumFlingVelocity();
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         mMeasureWidth = getMeasuredWidth();
+        mMeasureHeight = getMeasuredHeight();
         mPaddingLeft = getPaddingLeft();
         mPaddingRight = getPaddingRight();
         mPaddingTop = getPaddingTop();
@@ -120,13 +132,13 @@ public class FlowLayout extends ViewGroup {
     }
 
     private void smoothScrollBy(int dX, int dY) {
-        if (mLocalVisibleRect != null && getMeasuredHeight() <= mLocalVisibleRect.height()) {
+        if (mLocalVisibleRect != null && mMeasureHeight <= mLocalVisibleRect.height()) {
             return;
         }
         if (dY + mScroller.getFinalY() < 0) {
             dY = -mScroller.getFinalY();
-        } else if (dY + mScroller.getFinalY() > getMeasuredHeight() - mLocalVisibleRect.height() + mPaddingTop + mPaddingBottom) {
-            dY = getMeasuredHeight() - mLocalVisibleRect.height() + mPaddingTop + mPaddingBottom - mScroller.getFinalY();
+        } else if (dY + mScroller.getFinalY() > mMeasureHeight - mLocalVisibleRect.height()) {
+            dY = mMeasureHeight - mLocalVisibleRect.height() - mScroller.getFinalY();
         }
         mScroller.startScroll(mScroller.getFinalX(), mScroller.getFinalY(), dX, dY);
         postInvalidate();
@@ -152,8 +164,15 @@ public class FlowLayout extends ViewGroup {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (velocityTracker == null) {
+            velocityTracker = VelocityTracker.obtain();
+        }
+        velocityTracker.addMovement(ev);
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                if (!mScroller.isFinished()) {
+                    mScroller.abortAnimation();
+                }
                 mStartY = ev.getY();
                 mY = ev.getY();
                 break;
@@ -170,10 +189,31 @@ public class FlowLayout extends ViewGroup {
                         mClickListener.onClick(clickOnChild);
                     }
                 }
+
+                final VelocityTracker velocityTracker = this.velocityTracker;
+                velocityTracker.computeCurrentVelocity(1000, maximumVelocity);//计算当前速度(按1秒为单位)
+                int velocityY = -(int) velocityTracker.getYVelocity();//获取y方向速度
+                if (Math.abs(velocityY) > minimumVelocity) {
+                    mScroller.fling(0, getScrollY(), 0, velocityY, 0, 0, 0, getMaxScrollY());
+                } else {
+                    if (this.velocityTracker != null) {
+                        this.velocityTracker.recycle();
+                        this.velocityTracker = null;
+                    }
+                }
                 break;
         }
         return true;
     }
+
+    public int getMaxScrollY() {
+        if (mMeasureHeight - mLocalVisibleRect.height() > 0) {
+            return (mMeasureHeight - mLocalVisibleRect.height());
+        } else {
+            return 0;
+        }
+    }
+
 
     @Override
     public void computeScroll() {
