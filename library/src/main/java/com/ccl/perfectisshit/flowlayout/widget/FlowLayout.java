@@ -238,7 +238,7 @@ public class FlowLayout extends ViewGroup {
         requestLayout();
     }
 
-    private interface AdapterInterface<T extends Object> {
+    private interface AdapterInterface<T> {
         T getItem(int position);
 
         int getCount();
@@ -246,7 +246,7 @@ public class FlowLayout extends ViewGroup {
         View getView(int position, ViewGroup parent);
     }
 
-    public static abstract class BaseAdapter<T extends Object> implements AdapterInterface<T> {
+    public static abstract class BaseAdapter<T> implements AdapterInterface<T> {
 
     }
 
